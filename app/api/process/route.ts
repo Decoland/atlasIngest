@@ -214,17 +214,11 @@ function cleanText(text: string): string {
   text = text.replace(/[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F]/g, '');
   text = text.replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
 
-  // Replace [Author et al. (Year)](url) with Author et al.
-  text = text.replace(/\[([^\]]+? et al\. \(\d{4}\))\]\([^)]+\)/g, '$1');
-
-  // Remove any remaining markdown links but keep the link text
-  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Replace [text](url "title") or [text](url) with just text
+  text = text.replace(/\[([^\]]+)\]\([^)]+(?:\s+"[^"]*")?\)/g, '$1');
 
   // Remove any remaining URLs
   text = text.replace(/https?:\/\/[^\s)]+/g, '');
-
-  // Remove brackets around author citations (if any left)
-  text = text.replace(/\[([^\]]+? et al\. \(\d{4}\))\]/g, '$1');
 
   // Remove code blocks and their content
   text = text.replace(/```[\s\S]*?```/g, "");
@@ -243,16 +237,22 @@ function cleanText(text: string): string {
   // Remove comments
   text = text.replace(/\/\*[\s\S]*?\*\//g, "");
   text = text.replace(/\/\/.*$/gm, "");
+
   // Normalize whitespace
   text = text.replace(/\s+/g, " ");
   // Remove multiple newlines
   text = text.replace(/\n{3,}/g, "\n\n");
-  // Remove special characters except those common in URLs
-  text = text.replace(/[^a-zA-Z0-9\s\-_.\/:?=&]/g, "");
+
+  // Remove special characters except those common in text, including parentheses and commas
+  // (Preserve: . , ; : ( ) [ ] { } - _ / ? = &)
+  text = text.replace(/[^a-zA-Z0-9\s.,;:()\[\]\{\}\-_/=?&]/g, "");
+
   text = text.trim();
 
   return text;
 }
+
+console.log(cleanText("Similar blockchain tools for social economies in local communities include tokens for [prosocial behaviours](https://www.sciencedirect.com/topics/social-sciences/prosocial-behavior \"Learn more about prosocial behaviours from ScienceDirect's AI-generated Topic Pages\") (Colu, Changers Co2 fit, Buck-e), local currencies (Leman, La Racine, Circles, Cirklo, Sarafu), social finance (Trustline, Manna, WeTrust), and DAO prototypes that include one or more of the above-mentioned tools (e.g. Sinergatika). New protocols and open-source tools for social [cryptocurrencies](https://www.sciencedirect.com/topics/economics-econometrics-and-finance/cryptocurrency \"Learn more about cryptocurrencies from ScienceDirect's AI-generated Topic Pages"));
 
 async function advancedChunking(text: string): Promise<string[]> {
     console.log('Chunking with langchain using RecursiveCharacterTextSplitter...');

@@ -30,6 +30,7 @@ interface CsvEntry {
   date: string;
   tags: string[];
   url: string;
+  working_url: string;
 }
 
 export default function Home() {
@@ -84,7 +85,7 @@ export default function Home() {
 
     const rows = parsed.data as Record<string, string>[];
     // Validate required columns exist
-    const requiredColumns = ['Title ', 'Author/ Company ', 'Resource Type ', 'Publication Date ', 'Keywords ', 'Link/ URL '];
+    const requiredColumns = ['Title ', 'Author/ Company ', 'Resource Type ', 'Publication Date ', 'Keywords ', 'Link/ URL ', 'Working URL'];
     const missingColumns = requiredColumns.filter(col => !Object.keys(rows[0] || {}).includes(col));
     if (missingColumns.length > 0) {
       toast.error(`Missing required columns: ${missingColumns.join(', ')}`);
@@ -100,13 +101,16 @@ export default function Home() {
         source: rowData['Resource Type '] || '',
         date: rowData['Publication Date '] || '',
         tags: (rowData['Keywords '] || '').split(';').map(tag => tag.trim()).filter(Boolean),
-        url: rowData['Link/ URL '] || ''
+        url: rowData['Link/ URL '] || '',
+        working_url: rowData['Working URL'] || '0'
       };
       return metadata;
     });
 
     // Filter out rows with invalid URLs
-    const validData = csvData.filter(item => isValidUrl(item.url));
+    const validData = csvData.filter(item => item.working_url==='1'); //valid url is working_url = 1
+    console.log("validData: ", validData);
+    console.log("invalidData: ", csvData.filter(item => item.working_url!=='1'));
     if (validData.length < csvData.length) {
       toast.warning(`${csvData.length - validData.length} rows with invalid URLs will be ignored`);
     }
