@@ -209,52 +209,78 @@ function checkForUrls(text: string) {
   }
 }
 
-function cleanText(text: string): string {
-  // Remove control characters and normalize whitespace
-  text = text.replace(/[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F]/g, '');
-  text = text.replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
-
-  // Replace [text](url "title") or [text](url) with just text
-  text = text.replace(/\[([^\]]+)\]\([^)]+(?:\s+"[^"]*")?\)/g, '$1');
-
-  // Remove any remaining URLs
-  text = text.replace(/https?:\/\/[^\s)]+/g, '');
-
-  // Remove code blocks and their content
-  text = text.replace(/```[\s\S]*?```/g, "");
-  // Remove inline code
-  text = text.replace(/`.*?`/g, "");
-  // Convert headers to plain text with emphasis
-  text = text.replace(/#{1,6}\s*(.*)/g, "$1");
-  // Remove image links but keep alt text
-  text = text.replace(/!\[(.*?)\]\(.*?\)/g, "$1");
-  // Remove Discord mentions specifically
-  text = text.replace(/<@[!&]?\d+>/g, "");
-  // Remove HTML tags
-  text = text.replace(/<[^>]*>/g, "");
-  // Remove horizontal rules
-  text = text.replace(/^\s*[-*_]{3,}\s*$/gm, "");
-  // Remove comments
-  text = text.replace(/\/\*[\s\S]*?\*\//g, "");
-  text = text.replace(/\/\/.*$/gm, "");
-
-  // Normalize whitespace
-  text = text.replace(/\s+/g, " ");
-  // Remove multiple newlines
-  text = text.replace(/\n{3,}/g, "\n\n");
-
-  // Remove special characters except those common in text, including parentheses and commas
-  // (Preserve: . , ; : ( ) [ ] { } - _ / ? = &)
-  text = text.replace(/[^a-zA-Z0-9\s.,;:()\[\]\{\}\-_/=?&]/g, "");
-
-  text = text.trim();
-
+function softCleanText(text: string): string {
+  text = text.replace(/\s+/g, ' ').replace(/https?:\/\/[^\s)]+|<[^>]*>|<@[!&]?\d+>/g, '').replace(/(Tel\.?|Telephone|Phone|Fax\.?|Facsimile)\s*:?\s*\+?\d[\d\s().-]{5,}/gi, '')
+  .replace(/©?\s*\d{4}\s+[^.\n]+(All rights reserved\.?|No part of this publication may be reproduced|Copyright|Reproduction in any form|World Economic Forum)/gi, '').trim();
   return text;
 }
 
-console.log(cleanText("Similar blockchain tools for social economies in local communities include tokens for [prosocial behaviours](https://www.sciencedirect.com/topics/social-sciences/prosocial-behavior \"Learn more about prosocial behaviours from ScienceDirect's AI-generated Topic Pages\") (Colu, Changers Co2 fit, Buck-e), local currencies (Leman, La Racine, Circles, Cirklo, Sarafu), social finance (Trustline, Manna, WeTrust), and DAO prototypes that include one or more of the above-mentioned tools (e.g. Sinergatika). New protocols and open-source tools for social [cryptocurrencies](https://www.sciencedirect.com/topics/economics-econometrics-and-finance/cryptocurrency \"Learn more about cryptocurrencies from ScienceDirect's AI-generated Topic Pages"));
+function cleanText(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+
+  // Single pass for multiple similar operations
+  return text
+    // Remove control characters (except tab, newline, carriage return)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    
+    // Remove non-printable characters (keep basic ASCII + extended ASCII)
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
+    
+    // Markdown processing - combined patterns
+    .replace(/```[\s\S]*?```|`[^`]*`|#{1,6}\s*([^\n]*)|!\[([^\]]*)\]\([^)]+\)|\[([^\]]+)\]\([^)]+(?:\s+"[^"]*")?\)/g, 
+      (match, header, imgAlt, linkText) => {
+        if (header !== undefined) return header; // Headers
+        if (imgAlt !== undefined) return imgAlt; // Image alt text
+        if (linkText !== undefined) return linkText; // Link text
+        return ''; // Remove code blocks and inline code
+      })
+    
+    // Remove URLs, HTML tags, Discord mentions
+    .replace(/https?:\/\/[^\s)]+|<[^>]*>|<@[!&]?\d+>/g, '')
+    
+    // Remove horizontal rules
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
+    
+    // Remove comments (CSS/JS style)
+    .replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    
+    // Remove contact information - fixed escaping
+    .replace(/(Tel\.?|Telephone|Phone|Fax\.?|Facsimile)\s*:?\s*\+?\d[\d\s().-]{5,}/gi, '')
+    
+    // Remove email addresses - fixed escaping
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '')
+    
+    // Remove copyright and legal text - fixed escaping and combined
+    .replace(/©?\s*\d{4}\s+[^.\n]+(All rights reserved\.?|No part of this publication may be reproduced|Copyright|Reproduction in any form|World Economic Forum)/gi, '')
+    
+    // Remove address/contact lines
+    .replace(/^.*(address|contact).*$/gim, '')
+    
+    // Remove legal boilerplate - combined and fixed
+    .replace(/(No part of this publication may be reproduced[^.]*\.|All rights reserved\.?|Copyright[^.]*\.)/gi, '')
+    
+    // Remove citation numbers like [35], [1], [123]
+    // .replace(/\[\d+\]/g, '')
+    
+    // Clean up special characters (preserve common punctuation)
+    .replace(/[^a-zA-Z0-9\s.,;:()\[\]{}\-_/?=&]/g, '')
+    
+    // Normalize whitespace - single operation
+    .replace(/\s+/g, ' ')
+    
+    // Remove excessive newlines
+    .replace(/\n{3,}/g, '\n\n')
+    
+    // Final cleanup
+    .trim();
+}
+
+console.log(cleanText("Similar blockchain tools for social economies in local communities include tokens for [prosocial behaviours](https://www.sciencedirect.com/topics/social-sciences/prosocial-behavior \"Learn more about prosocial behaviours from ScienceDirect's AI-generated Topic Pages\") (Colu, Changers Co2 fit, Buck-e), local currencies (Leman, La Racine, Circles, Cirklo, Sarafu), social finance (Trustline, Manna, WeTrust), and DAO prototypes that include one or more of the above-mentioned tools (e.g. Sinergatika). New protocols and open-source tools for social [cryptocurrencies](https://www.sciencedirect.com/topics/economics-econometrics-and-finance/cryptocurrency \"Learn more about cryptocurrencies from ScienceDirect's AI-generated Topic Pages contact at Tel.: +41 (0)22 869 1212, Fax: +41 (0)22 786 2744, Email:  contact@weforum.org, © 2020 World Economic Forum. All rights reserved. No part of this publication may be reproduced or transmitted in any form or by any means, including photocopying and recording, or by any information storage and retrieval system."));
 
 async function advancedChunking(text: string): Promise<string[]> {
+  text = cleanText(text);
     console.log('Chunking with langchain using RecursiveCharacterTextSplitter...');
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
@@ -381,7 +407,9 @@ async function storeToPinecone(embeddings: number[][], metadata: any, index: any
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batchVectors = chunks.slice(i, i + BATCH_SIZE).map((chunk, batchIndex) => {
         const actualIndex = i + batchIndex;
-        
+        console.log("before cleanText chunk: ", chunk);
+        // chunk = softCleanText(chunk);
+        // console.log("after cleanText chunk: ", chunk);
         // Create vector with text field AFTER spreading metadata
         const vector = {
           id: `${documentId}-chunk-${actualIndex}`,
@@ -389,7 +417,7 @@ async function storeToPinecone(embeddings: number[][], metadata: any, index: any
           metadata: {
             ...metadata,  // Spread metadata first
             document_id: documentId,
-            chunk_id: `chunk-${actualIndex}`,
+            chunk_id: `chunk-${actualIndex}`, 
             text: chunk  // Add text last to prevent overwriting
           }
         };

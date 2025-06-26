@@ -98,7 +98,7 @@ export default function Home() {
     // Process each row
     const csvData = rows.map(rowData => {
       const metadata = {
-        document_title: rowData['Title '] || '',
+        document_title: (rowData['Title ']).replace(/\n/g, ' ') || '',
         authors: (rowData['Author/ Company '] || '').split(';').map(author => author.trim()).filter(Boolean),
         source: rowData['Resource Type '] || '',
         date: rowData['Publication Date '] || '',
@@ -309,10 +309,10 @@ export default function Home() {
             formData.append('metadata', JSON.stringify({
               document_title: entry.document_title,
               authors: entry.authors,
-              source: entry.source,
+              category: entry.source,
               date: entry.date,
               tags: entry.tags,
-              category: '' // Category not provided in CSV
+              url: entry.url
             }));
 
             const response = await fetch('/api/process', {
