@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 // @ts-ignore
 import Papa from 'papaparse'
-import { deleteAllVectors } from "../../app/actions/deleteAllVectors"
 
 interface FileProgress {
   fileName: string
@@ -367,7 +366,8 @@ export default function Home() {
     }
     setDeleting(true);
     try {
-      await deleteAllVectors();
+      const res = await fetch("/api/delete-all", { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
       toast.success("All records deleted from index");
     } catch (err) {
       toast.error("Failed to delete all records");
