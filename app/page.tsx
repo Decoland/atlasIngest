@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 // @ts-ignore
 import Papa from 'papaparse'
+import { deleteAllVectors } from "../../app/actions/deleteAllVectors"
 
 interface FileProgress {
   fileName: string
@@ -50,6 +51,8 @@ export default function Home() {
 
   const folderInputRef = useRef<HTMLInputElement>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
+
+  const [deleting, setDeleting] = useState(false)
 
   // Add URL validation function
   const isValidUrl = (urlString: string): boolean => {
@@ -108,11 +111,11 @@ export default function Home() {
     });
 
     // Filter out rows with invalid URLs
-    const validData = csvData.filter(item => item.working_url==='1'); //valid url is working_url = 1
-    console.log("validData: ", validData);
-    console.log("invalidData: ", csvData.filter(item => item.working_url!=='1'));
-    if (validData.length < csvData.length) {
-      toast.warning(`${csvData.length - validData.length} rows with invalid URLs will be ignored`);
+    const validData = csvData.filter(item => item.working_url === '1');
+    const emptyUrlRows = validData.filter(item => !item.url || item.url.trim() === "");
+    if (emptyUrlRows.length > 0) {
+      toast.error(`Error: ${emptyUrlRows.length} entries have empty URLs after filtering for working_url === '1'.`);
+      return;
     }
     setCsvUrls(validData);
     if (validData.length > 0) {
@@ -356,6 +359,23 @@ export default function Home() {
     }
   }
 
+  const handleDeleteAll = async () => {
+    const pwd = window.prompt("Enter password to delete all records:");
+    if (pwd !== "password") {
+      toast.error("Incorrect password");
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteAllVectors();
+      toast.success("All records deleted from index");
+    } catch (err) {
+      toast.error("Failed to delete all records");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="mb-12">
@@ -376,14 +396,24 @@ export default function Home() {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Document Processing</h2>
-          <Button 
-            variant="outline" 
-            onClick={handleReset}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Reset
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleReset}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reset
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={deleting}
+              className="flex items-center gap-2"
+            >
+              Delete All Records
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
