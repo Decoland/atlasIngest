@@ -44,6 +44,14 @@ function checkRateLimit(clientId: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
+    // Password check
+    const password = request.headers.get('x-upload-password');
+    if (!password || password !== process.env.UPLOAD_PASSWORD) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Invalid password.' },
+        { status: 401 }
+      );
+    }
     // Basic rate limiting
     const clientId = request.headers.get('x-forwarded-for') || 'unknown';
     if (!checkRateLimit(clientId)) {

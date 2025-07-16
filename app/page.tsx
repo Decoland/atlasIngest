@@ -6,7 +6,7 @@ import ProcessIndicator from "@/components/process-indicator"
 import MultiFileProgress from "@/components/multi-file-progress"
 import MetadataDialog from "@/components/metadata-dialog"
 import BulkMetadataDialog from "@/components/bulk-metadata-dialog"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { toast } from "sonner"
@@ -178,9 +178,19 @@ export default function Home() {
       
       setProcessingStep(2)
       
+      const password = await getPassword();
+      if (!password) {
+        toast.error("Password required to upload");
+        setProcessingStep(0);
+        return;
+      }
+
       const response = await fetch('/api/process', {
         method: 'POST',
         body: formData,
+        headers: {
+          'x-upload-password': password
+        }
       })
 
       if (!response.ok) {
@@ -234,9 +244,21 @@ export default function Home() {
               authors: []
             }))
 
+            const password = await getPassword();
+            if (!password) {
+              toast.error("Password required to upload");
+              setFileProgress(prev => prev.map((item, i) => 
+                i === fileIndex ? { ...item, status: 'error', error: "Password required to upload" } : item
+              ));
+              return { success: false, fileName: file.name, error: "Password required to upload" };
+            }
+
             const response = await fetch('/api/process', {
               method: 'POST',
               body: formData,
+              headers: {
+                'x-upload-password': password
+              }
             })
 
             if (!response.ok) {
@@ -315,9 +337,21 @@ export default function Home() {
               url: entry.url
             }));
 
+            const password = await getPassword();
+            if (!password) {
+              toast.error("Password required to upload");
+              setFileProgress(prev => prev.map((item, i) => 
+                i === entryIndex ? { ...item, status: 'error', error: "Password required to upload" } : item
+              ));
+              return { success: false, fileName: entry.url, error: "Password required to upload" };
+            }
+
             const response = await fetch('/api/process', {
               method: 'POST',
               body: formData,
+              headers: {
+                'x-upload-password': password
+              }
             });
 
             if (!response.ok) {
@@ -527,5 +561,21 @@ export default function Home() {
       />
     </div>
   )
+}
+
+// Add a helper for password
+const PASSWORD_KEY = "atlas_upload_password";
+
+async function getPassword(): Promise<string> {
+  let pwd = localStorage.getItem(PASSWORD_KEY);
+  if (!pwd) {
+    pwd = window.prompt("Enter password to upload documents:") || "";
+    if (pwd) localStorage.setItem(PASSWORD_KEY, pwd);
+  }
+  return pwd || "";
+}
+
+function clearPassword() {
+  localStorage.removeItem(PASSWORD_KEY);
 }
 
