@@ -122,8 +122,27 @@ export default function Home() {
     }
   }
 
-  // Modify handleUpload to handle CSV URLs
-  const handleUpload = () => {
+  // Add a ref to track if password was validated
+  const passwordValidatedRef = useRef(false);
+
+  // Update handleUpload to check password before opening dialogs
+  const handleUpload = async () => {
+    const password = await getPassword();
+    if (!password) {
+      toast.error("Password required to upload");
+      return;
+    }
+    const valid = await checkPasswordValid(password);
+    if (!valid) {
+      clearPassword();
+      toast.error("Incorrect password. Please try again.");
+      passwordValidatedRef.current = false;
+      return;
+    }
+    if (!passwordValidatedRef.current) {
+      toast.success("Password accepted");
+      passwordValidatedRef.current = true;
+    }
     if (csvUrls.length > 0) {
       handleBulkUrlProcessing(csvUrls);
     } else if (selectedFiles.length === 0 && !url) {
@@ -181,6 +200,13 @@ export default function Home() {
       const password = await getPassword();
       if (!password) {
         toast.error("Password required to upload");
+        setProcessingStep(0);
+        return;
+      }
+      const valid = await checkPasswordValid(password);
+      if (!valid) {
+        clearPassword();
+        toast.error("Incorrect password. Please try again.");
         setProcessingStep(0);
         return;
       }
@@ -257,6 +283,15 @@ export default function Home() {
                 i === fileIndex ? { ...item, status: 'error', error: "Password required to upload" } : item
               ));
               return { success: false, fileName: file.name, error: "Password required to upload" };
+            }
+            const valid = await checkPasswordValid(password);
+            if (!valid) {
+              clearPassword();
+              setFileProgress(prev => prev.map((item, i) => 
+                i === fileIndex ? { ...item, status: 'error', progress: 0, error: 'Incorrect password. Please try again.' } : item
+              ));
+              toast.error("Incorrect password. Please try again.");
+              return { success: false, fileName: file.name, error: 'Incorrect password' };
             }
 
             const response = await fetch('/api/process', {
@@ -358,6 +393,15 @@ export default function Home() {
                 i === entryIndex ? { ...item, status: 'error', error: "Password required to upload" } : item
               ));
               return { success: false, fileName: entry.url, error: "Password required to upload" };
+            }
+            const valid = await checkPasswordValid(password);
+            if (!valid) {
+              clearPassword();
+              setFileProgress(prev => prev.map((item, i) => 
+                i === entryIndex ? { ...item, status: 'error', progress: 0, error: 'Incorrect password. Please try again.' } : item
+              ));
+              toast.error("Incorrect password. Please try again.");
+              return { success: false, fileName: entry.url, error: 'Incorrect password' };
             }
 
             const response = await fetch('/api/process', {
@@ -599,5 +643,14 @@ async function getPassword(): Promise<string> {
 
 function clearPassword() {
   localStorage.removeItem(PASSWORD_KEY);
+}
+
+// Add a helper to check password validity
+async function checkPasswordValid(password: string): Promise<boolean> {
+  const res = await fetch('/api/process', {
+    method: 'GET',
+    headers: { 'x-upload-password': password }
+  });
+  return res.status === 200;
 }
 

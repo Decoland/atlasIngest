@@ -116,6 +116,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  // Password check for validation endpoint
+  const password = request.headers.get('x-upload-password');
+  if (!password || password !== process.env.UPLOAD_PASSWORD) {
+    return NextResponse.json(
+      { error: 'Unauthorized: Invalid password.' },
+      { status: 401 }
+    );
+  }
+  return NextResponse.json({ success: true });
+}
+
 async function preprocessUrl(url: string): Promise<string> {
   try {
     console.log('Raw URL received:', url); // Debug the incoming URL
