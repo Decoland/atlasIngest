@@ -193,6 +193,12 @@ export default function Home() {
         }
       })
 
+      if (response.status === 401) {
+        clearPassword();
+        toast.error("Incorrect password. Please try again.");
+        setProcessingStep(0);
+        return;
+      }
       if (!response.ok) {
         throw new Error('Processing failed')
       }
@@ -261,6 +267,14 @@ export default function Home() {
               }
             })
 
+            if (response.status === 401) {
+              clearPassword();
+              setFileProgress(prev => prev.map((item, i) => 
+                i === fileIndex ? { ...item, status: 'error', progress: 0, error: 'Incorrect password. Please try again.' } : item
+              ));
+              toast.error("Incorrect password. Please try again.");
+              return { success: false, fileName: file.name, error: 'Incorrect password' };
+            }
             if (!response.ok) {
               throw new Error('Processing failed')
             }
@@ -354,6 +368,14 @@ export default function Home() {
               }
             });
 
+            if (response.status === 401) {
+              clearPassword();
+              setFileProgress(prev => prev.map((item, i) => 
+                i === entryIndex ? { ...item, status: 'error', progress: 0, error: 'Incorrect password. Please try again.' } : item
+              ));
+              toast.error("Incorrect password. Please try again.");
+              return { success: false, fileName: entry.url, error: 'Incorrect password' };
+            }
             if (!response.ok) {
               throw new Error('Processing failed');
             }
